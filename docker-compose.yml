@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  auth_db:
+    image: postgres:15
+    container_name: auth_postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: mydb
+    volumes:
+      - auth_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d mydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  post_db:
+    image: postgres:15
+    container_name: post_postgres
+    restart: always
+    ports:
+      - "5433:5432"  # Maps host port 5433 to the container's port 5432
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: post
+    volumes:
+      - post_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d post"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth_app:
+    build:
+      context: ./auth-micro
+    container_name: auth_app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://admin:admin@auth_db:5432/mydb?schema=public
+      NODE_ENV: development
+    depends_on:
+      - auth_db
+    command: >
+      sh -c "
+        npx prisma generate --schema=./prisma/schema.prisma &&
+        npx prisma migrate deploy &&
+        npm run start
+      "
+
+  post_app:
+    build:
+      context: ./post-micro
+    container_name: post_app
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://admin:admin@post_db:5432/post?schema=public
+      NODE_ENV: development
+    depends_on:
+      - post_db
+    command: >
+      sh -c "
+        npx prisma generate --schema=./prisma/schema.prisma &&
+        npx prisma migrate deploy &&
+        npm run start
+      "
+
+volumes:
+  auth_pgdata:
+  post_pgdata:

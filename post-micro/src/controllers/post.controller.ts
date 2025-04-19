@@ -3,6 +3,7 @@ import { RequestWithUser } from "../middlewares/verifyToken";
 
 import { prisma } from "../lib/prisma";
 import axios from "axios";
+import { Post } from "../generated/prisma";
 
 interface IPost {
   title: string;
@@ -44,11 +45,12 @@ class PostController {
     }
 
     try {
-      const posts = await prisma.post.findMany({
+      const posts = (await prisma.post.findMany({
         where: {
           authorId: userId.toString(),
         },
-      });
+      })) as Post[];
+
       const postsWithUser = posts.map((post) => {
         return {
           ...post,
