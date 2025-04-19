@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "../generated/prisma";
 
 declare global {
   // avoid redeclaration errors in dev
@@ -12,4 +12,3 @@ if (process.env.NODE_ENV !== "production") global.prisma = prisma;
 export const checkPrismaConnection = async () => {
   return prisma.$connect();
 };
-
